@@ -1,0 +1,39 @@
+---
+title: "Data 607 Project 1: Chess Tournament Analysis"
+author: "Renee Watson"
+date: "2026-09-16"
+output: html_document
+---
+
+# Chess Tournament Analysis 
+
+## Approach 
+
+In this assignment, I will use a text file containing the results of a chess tournament with 64 players and seven rounds. The dataset includes each player's name, state, total points, pre-tournament rating, and results from each round. My plan is to load the text file into R and clean the data so that the information for each player can be organized into a structured dataset. 
+
+One challenge I anticipate is that the original data is stored in a text format rather than a traditional table, with each player's information spread across multiple lines. I will need to separate the player information and extract the opponent numbers from the round results. I will then use the opponent numbers to match each opponent with their pre-tournament rating and calculate the average opponent pre-rating for each player. 
+
+The final dataset will contain the player's name, state, total points, pre-tournament rating, and average pre-tournament rating of their opponents. I will export the cleaned dataset as a CSV file that can be imported into a SQL database. 
+
+Data source: tournamentinfo.txt
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
