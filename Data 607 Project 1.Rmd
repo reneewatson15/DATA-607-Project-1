@@ -1,5 +1,5 @@
 ---
-title: "Data 607 Project 1: Chess Tournament Analysis"
+title: "DATA 607 Project 1: Chess Tournament Analysis"
 author: "Renee Watson"
 date: "2026-09-16"
 output: html_document
@@ -17,12 +17,156 @@ The final dataset will contain the player's name, state, total points, pre-tourn
 
 Data source: tournamentinfo.txt
 
+## Codebase
+
+### Load the Data 
+```{r}
+library(tidyverse)
+
+chess <- readLines("tournamentinfo.txt")
+
+head(chess, 10)
+```
+
+### Clean the Tournament Data 
+```{r}
+chess_data <- chess[-c(1:4)]
+
+chess_data <- chess_data[!grepl("^---", chess_data)]
+
+head(chess_data)
+length(chess_data)
+```
+
+### Separate Player and Rating Information
+```{r}
+player_lines <- chess_data[seq(1, length(chess_data), by = 2)]
+
+rating_lines <- chess_data[seq(2, length(chess_data), by = 2)]
+
+head(player_lines)
+head(rating_lines)
+```
 
 
+```{r}
+player_split <- strsplit(player_lines, "\\|")
+
+player_split[[1]]
+```
+
+### Extract Player Information
+```{r}
+player_number <- as.numeric(trimws(sapply(player_split, '[', 1)))
+player_name <- trimws(sapply(player_split, '[', 2))
+total_points <- as.numeric(trimws(sapply(player_split, '[', 3)))
+
+head(player_number)
+head(player_name)
+head(total_points)
+```
 
 
+```{r}
+rating_split <- strsplit(rating_lines, "\\|")
+state <- trimws(sapply(rating_split, '[', 1))
+
+head(state)
+```
+
+### Extract Pre-Tournament Ratings
+```{r}
+rating_info <- trimws(sapply(rating_split, '[', 2))
+pre_rating <- as.numeric(
+  sub(".*R:\\s*([0-9]+).*", "\\1", rating_info)
+)
+
+head(pre_rating)
+```
+
+### Create Player Dataset
+```{r}
+players <- data.frame(
+  Player_Number = player_number,
+  Player_Name = player_name,
+  State = state,
+  Total_Points = total_points,
+  Pre_Rating = pre_rating
+)
+
+head(players)
+```
+
+### Extract Opponents
+```{r}
+rounds <- sapply(player_split, function(x) x[4:10])
+
+rounds <- t(rounds)
+
+head(rounds)
+```
 
 
+```{r}
+opponents <- apply(rounds, c(1,2), function(x) {
+  number <- gsub("[^0-9]", "", x)
+  ifelse(number == "", NA, as.numeric(number))
+}
+  )
+
+head(opponents)
+```
+
+### Calculate Average Opponent Ratings
+```{r}
+avg_opponent_rating <- apply(opponents, 1, function(x) {
+  x <- x[!is.na(x)]
+  opponent_ratings <- players$Pre_Rating[
+    match(x, players$Player_Number)
+  ]
+  mean(opponent_ratings)
+}
+  )
+
+head(avg_opponent_rating)
+```
+
+
+```{r}
+players$Avg_Opponent_Pre_Rating <- round(avg_opponent_rating)
+head(players)
+```
+
+### Create Final Dataset
+```{r}
+final_data <- players %>%
+  select(
+    Player_Name,
+    State,
+    Total_Points,
+    Pre_Rating,
+    Avg_Opponent_Pre_Rating
+  )
+
+head(final_data)
+nrow(final_data)
+```
+
+
+```{r}
+write.csv(
+  final_data,
+  "chess_tournament_results.csv",
+  row.names = FALSE
+)
+
+file.exists("chess_tournament_results.csv")
+```
+
+
+## Conclusion
+
+In this project, I transformed the chess tournament text file into a structured dataset containing information for all 64 players. I extracted each player's name, state, total points, and pre-tournament rating. I also used the results from each round to identify each player's opponents and calculate the average pre-tournament rating of those opponents. The main challenge was working with the semi-structured text file because the player information was spread across multiple lines and the round results contained both letters and opponent numbers. After cleaning and organizing the data, I was able to create the five required variables and export the final dataset as a CSV file that can be imported into a SQL database. 
 
 
 

@@ -13,7 +13,7 @@
 
 <meta name="date" content="2026-09-16" />
 
-<title>Data 607 Project 1: Chess Tournament Analysis</title>
+<title>DATA 607 Project 1: Chess Tournament Analysis</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -350,7 +350,7 @@ display: none;
 
 
 
-<h1 class="title toc-ignore">Data 607 Project 1: Chess Tournament
+<h1 class="title toc-ignore">DATA 607 Project 1: Chess Tournament
 Analysis</h1>
 <h4 class="author">Renee Watson</h4>
 <h4 class="date">2026-09-16</h4>
@@ -380,6 +380,235 @@ points, pre-tournament rating, and average pre-tournament rating of
 their opponents. I will export the cleaned dataset as a CSV file that
 can be imported into a SQL database.</p>
 <p>Data source: tournamentinfo.txt</p>
+</div>
+<div id="codebase" class="section level2">
+<h2>Codebase</h2>
+<div id="load-the-data" class="section level3">
+<h3>Load the Data</h3>
+<pre class="r"><code>library(tidyverse)</code></pre>
+<pre><code>## Warning: package &#39;ggplot2&#39; was built under R version 4.4.3</code></pre>
+<pre><code>## Warning: package &#39;dplyr&#39; was built under R version 4.4.3</code></pre>
+<pre><code>## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+## ✔ dplyr     1.2.0     ✔ readr     2.1.5
+## ✔ forcats   1.0.1     ✔ stringr   1.5.2
+## ✔ ggplot2   4.0.2     ✔ tibble    3.3.0
+## ✔ lubridate 1.9.4     ✔ tidyr     1.3.1
+## ✔ purrr     1.1.0     
+## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+## ✖ dplyr::filter() masks stats::filter()
+## ✖ dplyr::lag()    masks stats::lag()
+## ℹ Use the conflicted package (&lt;http://conflicted.r-lib.org/&gt;) to force all conflicts to become errors</code></pre>
+<pre class="r"><code>chess &lt;- readLines(&quot;tournamentinfo.txt&quot;)</code></pre>
+<pre><code>## Warning in readLines(&quot;tournamentinfo.txt&quot;): incomplete final line found on
+## &#39;tournamentinfo.txt&#39;</code></pre>
+<pre class="r"><code>head(chess, 10)</code></pre>
+<pre><code>##  [1] &quot;-----------------------------------------------------------------------------------------&quot; 
+##  [2] &quot; Pair | Player Name                     |Total|Round|Round|Round|Round|Round|Round|Round| &quot;
+##  [3] &quot; Num  | USCF ID / Rtg (Pre-&gt;Post)       | Pts |  1  |  2  |  3  |  4  |  5  |  6  |  7  | &quot;
+##  [4] &quot;-----------------------------------------------------------------------------------------&quot; 
+##  [5] &quot;    1 | GARY HUA                        |6.0  |W  39|W  21|W  18|W  14|W   7|D  12|D   4|&quot; 
+##  [6] &quot;   ON | 15445895 / R: 1794   -&gt;1817     |N:2  |W    |B    |W    |B    |W    |B    |W    |&quot; 
+##  [7] &quot;-----------------------------------------------------------------------------------------&quot; 
+##  [8] &quot;    2 | DAKSHESH DARURI                 |6.0  |W  63|W  58|L   4|W  17|W  16|W  20|W   7|&quot; 
+##  [9] &quot;   MI | 14598900 / R: 1553   -&gt;1663     |N:2  |B    |W    |B    |W    |B    |W    |B    |&quot; 
+## [10] &quot;-----------------------------------------------------------------------------------------&quot;</code></pre>
+</div>
+<div id="clean-the-tournament-data" class="section level3">
+<h3>Clean the Tournament Data</h3>
+<pre class="r"><code>chess_data &lt;- chess[-c(1:4)]
+
+chess_data &lt;- chess_data[!grepl(&quot;^---&quot;, chess_data)]
+
+head(chess_data)</code></pre>
+<pre><code>## [1] &quot;    1 | GARY HUA                        |6.0  |W  39|W  21|W  18|W  14|W   7|D  12|D   4|&quot;
+## [2] &quot;   ON | 15445895 / R: 1794   -&gt;1817     |N:2  |W    |B    |W    |B    |W    |B    |W    |&quot;
+## [3] &quot;    2 | DAKSHESH DARURI                 |6.0  |W  63|W  58|L   4|W  17|W  16|W  20|W   7|&quot;
+## [4] &quot;   MI | 14598900 / R: 1553   -&gt;1663     |N:2  |B    |W    |B    |W    |B    |W    |B    |&quot;
+## [5] &quot;    3 | ADITYA BAJAJ                    |6.0  |L   8|W  61|W  25|W  21|W  11|W  13|W  12|&quot;
+## [6] &quot;   MI | 14959604 / R: 1384   -&gt;1640     |N:2  |W    |B    |W    |B    |W    |B    |W    |&quot;</code></pre>
+<pre class="r"><code>length(chess_data)</code></pre>
+<pre><code>## [1] 128</code></pre>
+</div>
+<div id="separate-player-and-rating-information" class="section level3">
+<h3>Separate Player and Rating Information</h3>
+<pre class="r"><code>player_lines &lt;- chess_data[seq(1, length(chess_data), by = 2)]
+
+rating_lines &lt;- chess_data[seq(2, length(chess_data), by = 2)]
+
+head(player_lines)</code></pre>
+<pre><code>## [1] &quot;    1 | GARY HUA                        |6.0  |W  39|W  21|W  18|W  14|W   7|D  12|D   4|&quot;
+## [2] &quot;    2 | DAKSHESH DARURI                 |6.0  |W  63|W  58|L   4|W  17|W  16|W  20|W   7|&quot;
+## [3] &quot;    3 | ADITYA BAJAJ                    |6.0  |L   8|W  61|W  25|W  21|W  11|W  13|W  12|&quot;
+## [4] &quot;    4 | PATRICK H SCHILLING             |5.5  |W  23|D  28|W   2|W  26|D   5|W  19|D   1|&quot;
+## [5] &quot;    5 | HANSHI ZUO                      |5.5  |W  45|W  37|D  12|D  13|D   4|W  14|W  17|&quot;
+## [6] &quot;    6 | HANSEN SONG                     |5.0  |W  34|D  29|L  11|W  35|D  10|W  27|W  21|&quot;</code></pre>
+<pre class="r"><code>head(rating_lines)</code></pre>
+<pre><code>## [1] &quot;   ON | 15445895 / R: 1794   -&gt;1817     |N:2  |W    |B    |W    |B    |W    |B    |W    |&quot;
+## [2] &quot;   MI | 14598900 / R: 1553   -&gt;1663     |N:2  |B    |W    |B    |W    |B    |W    |B    |&quot;
+## [3] &quot;   MI | 14959604 / R: 1384   -&gt;1640     |N:2  |W    |B    |W    |B    |W    |B    |W    |&quot;
+## [4] &quot;   MI | 12616049 / R: 1716   -&gt;1744     |N:2  |W    |B    |W    |B    |W    |B    |B    |&quot;
+## [5] &quot;   MI | 14601533 / R: 1655   -&gt;1690     |N:2  |B    |W    |B    |W    |B    |W    |B    |&quot;
+## [6] &quot;   OH | 15055204 / R: 1686   -&gt;1687     |N:3  |W    |B    |W    |B    |B    |W    |B    |&quot;</code></pre>
+<pre class="r"><code>player_split &lt;- strsplit(player_lines, &quot;\\|&quot;)
+
+player_split[[1]]</code></pre>
+<pre><code>##  [1] &quot;    1 &quot;                            &quot; GARY HUA                        &quot;
+##  [3] &quot;6.0  &quot;                             &quot;W  39&quot;                            
+##  [5] &quot;W  21&quot;                             &quot;W  18&quot;                            
+##  [7] &quot;W  14&quot;                             &quot;W   7&quot;                            
+##  [9] &quot;D  12&quot;                             &quot;D   4&quot;</code></pre>
+</div>
+<div id="extract-player-information" class="section level3">
+<h3>Extract Player Information</h3>
+<pre class="r"><code>player_number &lt;- as.numeric(trimws(sapply(player_split, &#39;[&#39;, 1)))
+player_name &lt;- trimws(sapply(player_split, &#39;[&#39;, 2))
+total_points &lt;- as.numeric(trimws(sapply(player_split, &#39;[&#39;, 3)))
+
+head(player_number)</code></pre>
+<pre><code>## [1] 1 2 3 4 5 6</code></pre>
+<pre class="r"><code>head(player_name)</code></pre>
+<pre><code>## [1] &quot;GARY HUA&quot;            &quot;DAKSHESH DARURI&quot;     &quot;ADITYA BAJAJ&quot;       
+## [4] &quot;PATRICK H SCHILLING&quot; &quot;HANSHI ZUO&quot;          &quot;HANSEN SONG&quot;</code></pre>
+<pre class="r"><code>head(total_points)</code></pre>
+<pre><code>## [1] 6.0 6.0 6.0 5.5 5.5 5.0</code></pre>
+<pre class="r"><code>rating_split &lt;- strsplit(rating_lines, &quot;\\|&quot;)
+state &lt;- trimws(sapply(rating_split, &#39;[&#39;, 1))
+
+head(state)</code></pre>
+<pre><code>## [1] &quot;ON&quot; &quot;MI&quot; &quot;MI&quot; &quot;MI&quot; &quot;MI&quot; &quot;OH&quot;</code></pre>
+</div>
+<div id="extract-pre-tournament-ratings" class="section level3">
+<h3>Extract Pre-Tournament Ratings</h3>
+<pre class="r"><code>rating_info &lt;- trimws(sapply(rating_split, &#39;[&#39;, 2))
+pre_rating &lt;- as.numeric(
+  sub(&quot;.*R:\\s*([0-9]+).*&quot;, &quot;\\1&quot;, rating_info)
+)
+
+head(pre_rating)</code></pre>
+<pre><code>## [1] 1794 1553 1384 1716 1655 1686</code></pre>
+</div>
+<div id="create-player-dataset" class="section level3">
+<h3>Create Player Dataset</h3>
+<pre class="r"><code>players &lt;- data.frame(
+  Player_Number = player_number,
+  Player_Name = player_name,
+  State = state,
+  Total_Points = total_points,
+  Pre_Rating = pre_rating
+)
+
+head(players)</code></pre>
+<pre><code>##   Player_Number         Player_Name State Total_Points Pre_Rating
+## 1             1            GARY HUA    ON          6.0       1794
+## 2             2     DAKSHESH DARURI    MI          6.0       1553
+## 3             3        ADITYA BAJAJ    MI          6.0       1384
+## 4             4 PATRICK H SCHILLING    MI          5.5       1716
+## 5             5          HANSHI ZUO    MI          5.5       1655
+## 6             6         HANSEN SONG    OH          5.0       1686</code></pre>
+</div>
+<div id="extract-opponents" class="section level3">
+<h3>Extract Opponents</h3>
+<pre class="r"><code>rounds &lt;- sapply(player_split, function(x) x[4:10])
+
+rounds &lt;- t(rounds)
+
+head(rounds)</code></pre>
+<pre><code>##      [,1]    [,2]    [,3]    [,4]    [,5]    [,6]    [,7]   
+## [1,] &quot;W  39&quot; &quot;W  21&quot; &quot;W  18&quot; &quot;W  14&quot; &quot;W   7&quot; &quot;D  12&quot; &quot;D   4&quot;
+## [2,] &quot;W  63&quot; &quot;W  58&quot; &quot;L   4&quot; &quot;W  17&quot; &quot;W  16&quot; &quot;W  20&quot; &quot;W   7&quot;
+## [3,] &quot;L   8&quot; &quot;W  61&quot; &quot;W  25&quot; &quot;W  21&quot; &quot;W  11&quot; &quot;W  13&quot; &quot;W  12&quot;
+## [4,] &quot;W  23&quot; &quot;D  28&quot; &quot;W   2&quot; &quot;W  26&quot; &quot;D   5&quot; &quot;W  19&quot; &quot;D   1&quot;
+## [5,] &quot;W  45&quot; &quot;W  37&quot; &quot;D  12&quot; &quot;D  13&quot; &quot;D   4&quot; &quot;W  14&quot; &quot;W  17&quot;
+## [6,] &quot;W  34&quot; &quot;D  29&quot; &quot;L  11&quot; &quot;W  35&quot; &quot;D  10&quot; &quot;W  27&quot; &quot;W  21&quot;</code></pre>
+<pre class="r"><code>opponents &lt;- apply(rounds, c(1,2), function(x) {
+  number &lt;- gsub(&quot;[^0-9]&quot;, &quot;&quot;, x)
+  ifelse(number == &quot;&quot;, NA, as.numeric(number))
+}
+  )
+
+head(opponents)</code></pre>
+<pre><code>##      [,1] [,2] [,3] [,4] [,5] [,6] [,7]
+## [1,]   39   21   18   14    7   12    4
+## [2,]   63   58    4   17   16   20    7
+## [3,]    8   61   25   21   11   13   12
+## [4,]   23   28    2   26    5   19    1
+## [5,]   45   37   12   13    4   14   17
+## [6,]   34   29   11   35   10   27   21</code></pre>
+</div>
+<div id="calculate-average-opponent-ratings" class="section level3">
+<h3>Calculate Average Opponent Ratings</h3>
+<pre class="r"><code>avg_opponent_rating &lt;- apply(opponents, 1, function(x) {
+  x &lt;- x[!is.na(x)]
+  opponent_ratings &lt;- players$Pre_Rating[
+    match(x, players$Player_Number)
+  ]
+  mean(opponent_ratings)
+}
+  )
+
+head(avg_opponent_rating)</code></pre>
+<pre><code>## [1] 1605.286 1469.286 1563.571 1573.571 1500.857 1518.714</code></pre>
+<pre class="r"><code>players$Avg_Opponent_Pre_Rating &lt;- round(avg_opponent_rating)
+head(players)</code></pre>
+<pre><code>##   Player_Number         Player_Name State Total_Points Pre_Rating
+## 1             1            GARY HUA    ON          6.0       1794
+## 2             2     DAKSHESH DARURI    MI          6.0       1553
+## 3             3        ADITYA BAJAJ    MI          6.0       1384
+## 4             4 PATRICK H SCHILLING    MI          5.5       1716
+## 5             5          HANSHI ZUO    MI          5.5       1655
+## 6             6         HANSEN SONG    OH          5.0       1686
+##   Avg_Opponent_Pre_Rating
+## 1                    1605
+## 2                    1469
+## 3                    1564
+## 4                    1574
+## 5                    1501
+## 6                    1519</code></pre>
+</div>
+<div id="create-final-dataset" class="section level3">
+<h3>Create Final Dataset</h3>
+<pre class="r"><code>final_data &lt;- players %&gt;%
+  select(
+    Player_Name,
+    State,
+    Total_Points,
+    Pre_Rating,
+    Avg_Opponent_Pre_Rating
+  )
+
+head(final_data)</code></pre>
+<pre><code>##           Player_Name State Total_Points Pre_Rating Avg_Opponent_Pre_Rating
+## 1            GARY HUA    ON          6.0       1794                    1605
+## 2     DAKSHESH DARURI    MI          6.0       1553                    1469
+## 3        ADITYA BAJAJ    MI          6.0       1384                    1564
+## 4 PATRICK H SCHILLING    MI          5.5       1716                    1574
+## 5          HANSHI ZUO    MI          5.5       1655                    1501
+## 6         HANSEN SONG    OH          5.0       1686                    1519</code></pre>
+<pre class="r"><code>nrow(final_data)</code></pre>
+<pre><code>## [1] 64</code></pre>
+<pre class="r"><code>write.csv(
+  final_data,
+  &quot;chess_tournament_results.csv&quot;,
+  row.names = FALSE
+)
+
+file.exists(&quot;chess_tournament_results.csv&quot;)</code></pre>
+<pre><code>## [1] TRUE</code></pre>
+</div>
+</div>
+<div id="conclusion" class="section level2">
+<h2>Conclusion</h2>
+<p>In this project, I transformed the chess tournament text file into a
+structured dataset containing information for all 64 players. I
+extracted each player’s name, state, total points, and pre-tournament
+rating. I also used the results from each round to identify each
+player’s opponents and calculate the average pre-tournament rating of
+those opponents. The main challenge was working with the semi-structured
+text file because the player information was spread across multiple
+lines and the round results contained both letters and opponent numbers.
+After cleaning and organizing the data, I was able to create the five
+required variables and export the final dataset as a CSV file that can
+be imported into a SQL database.</p>
 </div>
 </div>
 
